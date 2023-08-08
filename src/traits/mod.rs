@@ -1,5 +1,6 @@
 //! This module defines various traits required by the users of the library to implement.
 use crate::errors::NovaError;
+use abomonation::Abomonation;
 use bellpepper_core::{boolean::AllocatedBit, num::AllocatedNum, ConstraintSystem, SynthesisError};
 use core::{
   fmt::Debug,
@@ -45,7 +46,13 @@ pub trait Group:
   type CompressedGroupElement: CompressedGroup<GroupElement = Self>;
 
   /// A type representing preprocessed group element
-  type PreprocessedGroupElement: Clone + Debug + Send + Sync + Serialize + for<'de> Deserialize<'de>;
+  type PreprocessedGroupElement: Clone
+    + PartialEq
+    + Debug
+    + Send
+    + Sync
+    + Serialize
+    + for<'de> Deserialize<'de>;
 
   /// A type that represents a circuit-friendly sponge that consumes elements
   /// from the base field and squeezes out elements of the scalar field
@@ -120,7 +127,14 @@ pub trait ROTrait<Base: PrimeField, Scalar> {
   type CircuitRO: ROCircuitTrait<Base, Constants = Self::Constants>;
 
   /// A type representing constants/parameters associated with the hash function
-  type Constants: Default + Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>;
+  type Constants: Default
+    + Clone
+    + PartialEq
+    + Send
+    + Sync
+    + Serialize
+    + for<'de> Deserialize<'de>
+    + Abomonation;
 
   /// Initializes the hash function
   fn new(constants: Self::Constants, num_absorbs: usize) -> Self;
@@ -137,8 +151,15 @@ pub trait ROCircuitTrait<Base: PrimeField> {
   /// the vanilla alter ego of this trait - this constrains it to use the same constants
   type NativeRO<T: PrimeField>: ROTrait<Base, T, Constants = Self::Constants>;
 
-  /// A type representing constants/parameters associated with the hash function on this Base field
-  type Constants: Default + Clone + Send + Sync + Serialize + for<'de> Deserialize<'de>;
+  /// A type representing constants/parameters associated with the hash function
+  type Constants: Default
+    + Clone
+    + PartialEq
+    + Send
+    + Sync
+    + Serialize
+    + for<'de> Deserialize<'de>
+    + Abomonation;
 
   /// Initializes the hash function
   fn new(constants: Self::Constants, num_absorbs: usize) -> Self;

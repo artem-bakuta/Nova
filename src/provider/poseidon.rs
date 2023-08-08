@@ -1,5 +1,7 @@
 //! Poseidon Constants and Poseidon-based RO used in Nova
 use crate::traits::{ROCircuitTrait, ROTrait};
+use abomonation::Abomonation;
+use abomonation_derive::Abomonation;
 use bellpepper_core::{
   boolean::{AllocatedBit, Boolean},
   num::AllocatedNum,
@@ -21,7 +23,8 @@ use neptune::{
 use serde::{Deserialize, Serialize};
 
 /// All Poseidon Constants that are used in Nova
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Abomonation)]
+#[abomonation_bounds(where Scalar::Repr: Abomonation)]
 pub struct PoseidonConstantsCircuit<Scalar: PrimeField>(PoseidonConstants<Scalar, U24>);
 
 impl<Scalar: PrimeField> Default for PoseidonConstantsCircuit<Scalar> {
@@ -32,13 +35,20 @@ impl<Scalar: PrimeField> Default for PoseidonConstantsCircuit<Scalar> {
 }
 
 /// A Poseidon-based RO to use outside circuits
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Abomonation)]
+#[abomonation_bounds(
+  where
+    Base: PrimeField + PrimeFieldBits,
+    Scalar: PrimeField + PrimeFieldBits,
+    <Base as PrimeField>::Repr: Abomonation
+)]
 pub struct PoseidonRO<Base, Scalar>
 where
   Base: PrimeField,
   Scalar: PrimeField,
 {
   // Internal State
+  #[abomonate_with(Vec<Base::Repr>)]
   state: Vec<Base>,
   constants: PoseidonConstantsCircuit<Base>,
   num_absorbs: usize,
@@ -49,6 +59,7 @@ where
 impl<Base, Scalar> ROTrait<Base, Scalar> for PoseidonRO<Base, Scalar>
 where
   Base: PrimeField + PrimeFieldBits + Serialize + for<'de> Deserialize<'de>,
+  Base::Repr: Abomonation,
   Scalar: PrimeField,
 {
   type CircuitRO = PoseidonROCircuit<Base>;
@@ -119,6 +130,7 @@ where
 impl<Scalar> ROCircuitTrait<Scalar> for PoseidonROCircuit<Scalar>
 where
   Scalar: PrimeField + PrimeFieldBits + Serialize + for<'de> Deserialize<'de>,
+  Scalar::Repr: Abomonation,
 {
   type NativeRO<T: PrimeField> = PoseidonRO<Scalar, T>;
   type Constants = PoseidonConstantsCircuit<Scalar>;
@@ -209,8 +221,8 @@ mod tests {
   where
     // we can print the field elements we get from G's Base & Scalar fields,
     // and compare their byte representations
-    <<G as Group>::Base as PrimeField>::Repr: std::fmt::Debug,
-    <<G as Group>::Scalar as PrimeField>::Repr: std::fmt::Debug,
+    <<G as Group>::Base as PrimeField>::Repr: std::fmt::Debug + Abomonation,
+    <<G as Group>::Scalar as PrimeField>::Repr: std::fmt::Debug + Abomonation,
     <<G as Group>::Base as PrimeField>::Repr: PartialEq<<<G as Group>::Scalar as PrimeField>::Repr>,
   {
     // Check that the number computed inside the circuit is equal to the number computed outside the circuit
